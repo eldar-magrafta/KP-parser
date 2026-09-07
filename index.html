@@ -14,6 +14,9 @@
     <button class="tab-button active" onclick="showTab('meter')">
         Meter Reading
     </button>
+    <button class="tab-button" onclick="showTab('meterEvent')">
+        Meter Event
+    </button>
     <button class="tab-button" onclick="showTab('installation')">
         Installation
     </button>
@@ -59,7 +62,7 @@
                 <input
                         type="text"
                         id="meterHexInput"
-                        value="DC13006694000022220000000000000000000000000000A70B5134007E901010600"
+                        value="□DC13006694000022220000000000000000000000000000A70B513□DC4007E901010600"
                 />
                 <div id="meterPreview" class="preview"></div>
                 <button onclick="copyMeterToGenerator()" class="copy-to-gen-button copy-to-gen-button-meter">
@@ -265,6 +268,224 @@
     </div>
 </div>
 
+<!-- Meter Event (Alarm) -->
+<div id="meterEvent" class="tab-content">
+    <div class="main-container">
+        <!-- Meter Event Parser Section -->
+        <div class="card">
+            <h1>Meter Event (Alarm) Parser</h1>
+
+            <div class="input-section">
+                <label for="meterEventHexInput">Hex String Input:</label>
+                <input type="text" id="meterEventHexInput"
+                       value="□DC13709570000000000000000000000000000000000000AC0B513□4007EA07150C00"/>
+                <div id="meterEventPreview" class="preview"></div>
+                <button onclick="copyMeterEventToGenerator()"
+                        class="copy-to-gen-button copy-to-gen-button-meter">
+                    Copy to Generator →
+                </button>
+            </div>
+
+            <div class="grid">
+                <div>
+                    <label style="color: #ff00ff">Receiver Number:</label>
+                    <div class="value-box">
+                        <div id="meterEventReceiverNumber" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #22c55e">Index (Slot):</label>
+                    <div class="value-box">
+                        <div id="meterEventIndex" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #f97316">Type:</label>
+                    <div class="value-box">
+                        <div id="meterEventType" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #3b82f6">Account (KP id):</label>
+                    <div class="value-box">
+                        <div id="meterEventAccount" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #e11d48">Event Code:</label>
+                    <div class="value-box">
+                        <div id="meterEventCodeValue" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #d8c724">Signal Strength:</label>
+                    <div class="value-box">
+                        <div id="meterEventSignalStrength" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #ff00ff">Repeater #:</label>
+                    <div class="value-box">
+                        <div id="meterEventRepeater" class="value"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timestamp">
+                <div>
+                    <label style="color: #40ff00">Year</label>
+                    <div class="value-box">
+                        <div id="meterEventParsedYear" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #0ea5e9">Month</label>
+                    <div class="value-box">
+                        <div id="meterEventParsedMonth" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #ca8a04">Day</label>
+                    <div class="value-box">
+                        <div id="meterEventParsedDay" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #15803d">Hour</label>
+                    <div class="value-box">
+                        <div id="meterEventParsedHour" class="value"></div>
+                    </div>
+                </div>
+                <div>
+                    <label style="color: #ef4444">Min</label>
+                    <div class="value-box">
+                        <div id="meterEventParsedMinute" class="value"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meter Event Generator Section -->
+        <div class="card">
+            <h1>Meter Event (Alarm) Generator</h1>
+            <p style="opacity:0.8;margin-top:-8px">
+                Generates a type-7 event/alarm message (e.g. Air in Pipe) for the
+                collector's <strong>"Events"</strong> queue.
+            </p>
+
+            <div class="grid">
+                <div>
+                    <label style="color: #ff00ff">Receiver Number:</label>
+                    <input type="number" id="genMeterEventReceiverNumber" class="generator-input" min="0" max="15"
+                           value="1"/>
+                </div>
+                <div>
+                    <label style="color: #22c55e">Index (Slot):</label>
+                    <input type="number" id="genMeterEventIndex" class="generator-input" min="0" max="8" value="3"/>
+                </div>
+                <div>
+                    <label style="color: #f97316">Type:</label>
+                    <select id="genMeterEventType" class="generator-input">
+                        <option value="0" disabled style="color: #999; background-color: #f1f1f1">
+                            Absolute value of the meter
+                        </option>
+                        <option value="1" disabled style="color: #999; background-color: #f1f1f1">
+                            Received signal strength indication
+                        </option>
+                        <option value="3" disabled style="color: #999; background-color: #f1f1f1">
+                            Previous Reading
+                        </option>
+                        <option value="4" disabled style="color: #999; background-color: #f1f1f1">
+                            Analog
+                        </option>
+                        <option value="5" disabled style="color: #999; background-color: #f1f1f1">
+                            Previous Analog Reading
+                        </option>
+                        <option value="6" disabled style="color: #999; background-color: #f1f1f1">
+                            Serial Number of the Meter (Installation)
+                        </option>
+                        <option value="7">Event</option>
+                        <option value="E" disabled style="color: #999; background-color: #f1f1f1">
+                            On-Demand
+                        </option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color: #3b82f6">Account (KP id):</label>
+                    <input type="number" id="genMeterEventAccount" class="generator-input" min="0" max="1048575"
+                           value="38256"/>
+                </div>
+                <div>
+                    <label style="color: #e11d48">Event Code:</label>
+                    <select id="genMeterEventCode" class="generator-input">
+                        <option value="A1">Strong Magnet (A1)</option>
+                        <option value="B1">Strong Magnet restore (B1)</option>
+                        <option value="A3">Reverse Flow (A3)</option>
+                        <option value="B3">Reverse Flow restore (B3)</option>
+                        <option value="A6">Leakage (A6)</option>
+                        <option value="B6">Leakage restore (B6)</option>
+                        <option value="A7">Tamper (A7)</option>
+                        <option value="B7">Tamper restore (B7)</option>
+                        <option value="A9">Qmax (A9)</option>
+                        <option value="AC" selected>Air in Pipe (AC)</option>
+                        <option value="BC">Air in Pipe restore (BC)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color: #d8c724">Signal Strength:</label>
+                    <input type="number" id="genMeterEventSignalStrength" class="generator-input" min="0" max="255"
+                           value="181"/>
+                </div>
+                <div>
+                    <label style="color: #ff00ff">Repeater #:</label>
+                    <input type="number" id="genMeterEventRepeater" class="generator-input" min="0" max="255"
+                           value="19"/>
+                </div>
+            </div>
+
+            <div class="timestamp">
+                <div>
+                    <label style="color: #40ff00">Year</label>
+                    <input type="number" id="genMeterEventYear" class="generator-input" min="2000" max="2099"
+                           value="2026"/>
+                </div>
+                <div>
+                    <label style="color: #0ea5e9">Month</label>
+                    <input type="number" id="genMeterEventMonth" class="generator-input" min="1" max="12" value="7"/>
+                </div>
+                <div>
+                    <label style="color: #ca8a04">Day</label>
+                    <input type="number" id="genMeterEventDay" class="generator-input" min="1" max="31" value="21"/>
+                </div>
+                <div>
+                    <label style="color: #15803d">Hour</label>
+                    <input type="number" id="genMeterEventHour" class="generator-input" min="0" max="23" value="12"/>
+                </div>
+                <div class="minute-container">
+                    <label style="color: #ef4444">Min</label>
+                    <input type="number" id="genMeterEventMinute" class="generator-input" min="0" max="59" value="0"/>
+                    <button onclick="setNearestPastTime('genMeterEvent')" class="now-button">
+                        Now
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="generateMeterEventHexString()">Generate</button>
+            <button onclick="resetMeterEventGenerator()" class="reset-button">Reset</button>
+
+            <div class="result-section">
+                <label>Generated Hex String:</label>
+                <div id="generatedMeterEventHex" class="preview"></div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                    <button onclick="copyMeterEventHexString()" class="copy-button">
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Installation -->
 <div id="installation" class="tab-content">
     <div class="main-container">
@@ -277,7 +498,7 @@
                 <input
                         type="text"
                         id="hexInput"
-                        value="DC146024E3000000000000000000000C04074CAE999999980B2FA4007E80C0C0B2C"
+                        value="□DC146024E3000000000000000000000C04074CAE999999980B2FA□4007E80C0C0B2C"
                 />
                 <div id="preview" class="preview"></div>
                 <button onclick="copyInstallationToGenerator()"
@@ -463,6 +684,7 @@
                         <option value="1A1D">Modbus ABB AquaMaster</option>
                         <option value="2B0E">Modbus KHRONE IFC300</option>
                         <option value="7A7B">Pulse Meter</option>
+                        <option value="11A5">Diehl Meters</option>
                     </select>
                 </div>
                 <div>
@@ -535,7 +757,7 @@
                 <input
                         type="text"
                         id="analogHexInput"
-                        value="DC114046D2195194FFF19218F18D18C18C000000000000000C49A3707E9011A0A00"
+                        value="□DC114046D2195194FFF19218F18D18C18C000000000000000C49A□3707E9011A0A00"
                 />
                 <div id="analogPreview" class="preview"></div>
                 <button onclick="copyAnalogToGenerator()" class="copy-to-gen-button copy-to-gen-button-analog">
@@ -818,7 +1040,7 @@
                 <input
                         type="text"
                         id="boxHexInput"
-                        value="DC1070C369000000000000000000000000000000000000210DE9A3407E80A090F04"
+                        value="□DC1070C369000000000000000000000000000000000000210DE9A□3407E80A090F04"
                 />
                 <div id="boxPreview" class="preview"></div>
                 <button onclick="copyBoxToGenerator()" class="copy-to-gen-button copy-to-gen-button-box">
@@ -1090,7 +1312,7 @@
     <div class="footer-content">
         <span class="footer-copyright">© 2025 KP String Parser & Generator</span>
         <span class="footer-separator">|</span>
-        <span class="footer-updated">Last Updated: February 2025</span>
+        <span class="footer-updated">Last Updated: February 2026</span>
         <span class="footer-separator">|</span>
         <span class="footer-author">Developed by Eldar M.</span>
     </div>

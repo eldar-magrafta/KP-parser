@@ -338,7 +338,7 @@ function generateMeterHexString() {
             return;
         }
 
-        let hexString = "DC";
+        let hexString = "□DC";
         hexString += dec2hex(receiverNumber, 1);
         hexString += dec2hex(index, 1);
         hexString += type;
@@ -348,7 +348,7 @@ function generateMeterHexString() {
         hexString += "0";
         hexString += dec2hex(signalStrength, 2);
         hexString += dec2hex(repeater, 2);
-        hexString += "40";
+        hexString += "□DC";
         hexString += dec2hex(year, 4);
         hexString += dec2hex(month, 2);
         hexString += dec2hex(day, 2);
@@ -410,6 +410,228 @@ function copyMeterToGenerator() {
     setTimeout(() => {
         button.textContent = "Copy to Generator →";
     }, 1500);
+}
+
+// =============== METER EVENT (ALARM) PARSER ===============
+function getMeterEventCode(code) {
+    const codes = {
+        A1: "Strong Magnet (A1)",
+        B1: "Strong Magnet restore (B1)",
+        A3: "Reverse Flow (A3)",
+        B3: "Reverse Flow restore (B3)",
+        A6: "Leakage (A6)",
+        B6: "Leakage restore (B6)",
+        A7: "Tamper (A7)",
+        B7: "Tamper restore (B7)",
+        A9: "Qmax (A9)",
+        AC: "Air in Pipe (AC)",
+        BC: "Air in Pipe restore (BC)",
+    };
+    return (
+        codes[code] ||
+        `<span style="color: red">Unknown (${code})</span>`
+    );
+}
+
+function renderMeterEventPreview(str) {
+    const parts = [
+        {text: str.slice(0, 3), color: "#000000", name: "Header (STX + DC)", start: 0, end: 2},
+        {text: str.slice(3, 4), color: "#ff00ff", name: "Receiver Number", start: 3, end: 3},
+        {text: str.slice(4, 5), color: "#22c55e", name: "Index (Slot)", start: 4, end: 4},
+        {text: str.slice(5, 6), color: "#f97316", name: "Type", start: 5, end: 5},
+        {text: str.slice(6, 11), color: "#3b82f6", name: "Account (KP id)", start: 6, end: 10},
+        {text: str.slice(11, 19), color: "#ef4444", name: "Current Read", start: 11, end: 18},
+        {text: str.slice(19, 47), color: "#a855f7", name: "Data (event code in last 2 chars)", start: 19, end: 46},
+        {text: str.slice(47, 49), color: "#e11d48", name: "Event Code (last 2 chars of Data)", start: 47, end: 48},
+        {text: str.slice(49, 50), color: "#000000", name: "Channel", start: 49, end: 49},
+        {text: str.slice(50, 52), color: "#d8c724", name: "Signal Strength", start: 50, end: 51},
+        {text: str.slice(52, 54), color: "#ff00ff", name: "Repeater #", start: 52, end: 53},
+        {text: str.slice(54, 57), color: "#000000", name: "ETX + Checksum", start: 54, end: 56},
+        {text: str.slice(57, 61), color: "#40ff00", name: "Year", start: 57, end: 60},
+        {text: str.slice(61, 63), color: "#0ea5e9", name: "Month", start: 61, end: 62},
+        {text: str.slice(63, 65), color: "#ca8a04", name: "Day", start: 63, end: 64},
+        {text: str.slice(65, 67), color: "#15803d", name: "Hour", start: 65, end: 66},
+        {text: str.slice(67, 69), color: "#ef4444", name: "Minute", start: 67, end: 68},
+    ];
+
+    let html = "";
+    parts.forEach((part) => {
+        if (part.text) {
+            html += `<span class="hex-segment" style="color: ${part.color}" data-name="${part.name}" data-start="${part.start}" data-end="${part.end}">${part.text}</span>`;
+        }
+    });
+
+    return html;
+}
+
+function parseMeterEventHexString(hexString) {
+    try {
+        document.getElementById("meterEventPreview").innerHTML =
+            renderMeterEventPreview(hexString);
+
+        document.getElementById("meterEventReceiverNumber").textContent = mid(
+            hexString,
+            4,
+            1,
+        );
+        document.getElementById("meterEventIndex").textContent = mid(
+            hexString,
+            5,
+            1,
+        );
+        const eventType = mid(hexString, 6, 1);
+        document.getElementById("meterEventType").innerHTML =
+            eventType === "7"
+                ? `<span>Event</span>`
+                : `<span style="color: red">Not an event (${eventType})</span>`;
+        document.getElementById("meterEventAccount").textContent = hex2dec(
+            mid(hexString, 7, 5),
+        );
+        document.getElementById("meterEventCodeValue").innerHTML =
+            getMeterEventCode(mid(hexString, 48, 2));
+        document.getElementById("meterEventSignalStrength").textContent = hex2dec(
+            mid(hexString, 51, 2),
+        );
+        document.getElementById("meterEventRepeater").textContent = hex2dec(
+            mid(hexString, 53, 2),
+        );
+
+        document.getElementById("meterEventParsedYear").textContent = hex2dec(
+            mid(hexString, 58, 4),
+        );
+        document.getElementById("meterEventParsedMonth").textContent = hex2dec(
+            mid(hexString, 62, 2),
+        );
+        document.getElementById("meterEventParsedDay").textContent = hex2dec(
+            mid(hexString, 64, 2),
+        );
+        document.getElementById("meterEventParsedHour").textContent = hex2dec(
+            mid(hexString, 66, 2),
+        );
+        document.getElementById("meterEventParsedMinute").textContent = hex2dec(
+            mid(hexString, 68, 2),
+        );
+    } catch (error) {
+        console.error("Error parsing meter event hex string:", error);
+    }
+}
+
+function copyMeterEventToGenerator() {
+    document.getElementById("genMeterEventReceiverNumber").value =
+        document.getElementById("meterEventReceiverNumber").textContent;
+    document.getElementById("genMeterEventIndex").value =
+        document.getElementById("meterEventIndex").textContent;
+    document.getElementById("genMeterEventType").value = "7";
+    document.getElementById("genMeterEventAccount").value =
+        document.getElementById("meterEventAccount").textContent;
+    document.getElementById("genMeterEventCode").value = mid(
+        document.getElementById("meterEventHexInput").value,
+        48,
+        2,
+    );
+    document.getElementById("genMeterEventSignalStrength").value =
+        document.getElementById("meterEventSignalStrength").textContent;
+    document.getElementById("genMeterEventRepeater").value =
+        document.getElementById("meterEventRepeater").textContent;
+    document.getElementById("genMeterEventYear").value =
+        document.getElementById("meterEventParsedYear").textContent;
+    document.getElementById("genMeterEventMonth").value =
+        document.getElementById("meterEventParsedMonth").textContent;
+    document.getElementById("genMeterEventDay").value =
+        document.getElementById("meterEventParsedDay").textContent;
+    document.getElementById("genMeterEventHour").value =
+        document.getElementById("meterEventParsedHour").textContent;
+    document.getElementById("genMeterEventMinute").value =
+        document.getElementById("meterEventParsedMinute").textContent;
+
+    // Visual feedback
+    const button = document.querySelector(
+        "#meterEvent .copy-to-gen-button-meter",
+    );
+    button.textContent = "Copied!";
+    setTimeout(() => {
+        button.textContent = "Copy to Generator →";
+    }, 1500);
+}
+
+// =============== METER EVENT (ALARM) GENERATOR ===============
+function generateMeterEventHexString() {
+    try {
+        const receiver = document.getElementById("genMeterEventReceiverNumber").value;
+        const slot = document.getElementById("genMeterEventIndex").value;
+        const type = document.getElementById("genMeterEventType").value;
+        const account = document.getElementById("genMeterEventAccount").value;
+        const code = document.getElementById("genMeterEventCode").value;
+        const signalStrength = document.getElementById("genMeterEventSignalStrength").value;
+        const repeater = document.getElementById("genMeterEventRepeater").value;
+        const year = document.getElementById("genMeterEventYear").value;
+        const month = document.getElementById("genMeterEventMonth").value;
+        const day = document.getElementById("genMeterEventDay").value;
+        const hour = document.getElementById("genMeterEventHour").value;
+        const minute = document.getElementById("genMeterEventMinute").value;
+
+        if (
+            !validateInput(receiver, 0, 15) ||
+            !validateInput(slot, 0, 8) ||
+            !validateInput(account, 0, 1048575) ||
+            !validateInput(signalStrength, 0, 255) ||
+            !validateInput(repeater, 0, 255) ||
+            !validateInput(year, 2000, 2099) ||
+            !validateInput(month, 1, 12) ||
+            !validateInput(day, 1, 31) ||
+            !validateInput(hour, 0, 23) ||
+            !validateInput(minute, 0, 59)
+        ) {
+            alert("Please check the input values.");
+            return;
+        }
+
+        let hexString = "□DC";
+        hexString += dec2hex(receiver, 1);
+        hexString += dec2hex(slot, 1);
+        hexString += type;
+        hexString += dec2hex(account, 5);
+        hexString += "0".repeat(36);
+        hexString += code;
+        hexString += "0";
+        hexString += dec2hex(signalStrength, 2);
+        hexString += dec2hex(repeater, 2);
+        hexString += "□DC";
+        hexString += dec2hex(year, 4);
+        hexString += dec2hex(month, 2);
+        hexString += dec2hex(day, 2);
+        hexString += dec2hex(hour, 2);
+        hexString += dec2hex(minute, 2);
+
+        document.getElementById("generatedMeterEventHex").innerHTML =
+            renderMeterEventPreview(hexString);
+    } catch (error) {
+        console.error("Error generating meter event hex string:", error);
+        alert("Error generating hex string. Please check your input values.");
+    }
+}
+
+function copyMeterEventHexString() {
+    const hexString = document
+        .getElementById("generatedMeterEventHex")
+        .textContent.trim();
+    copyToClipboard(hexString, "meterEvent");
+}
+
+function resetMeterEventGenerator() {
+    document.getElementById("genMeterEventReceiverNumber").value = "1";
+    document.getElementById("genMeterEventIndex").value = "3";
+    document.getElementById("genMeterEventType").value = "7";
+    document.getElementById("genMeterEventAccount").value = "38256";
+    document.getElementById("genMeterEventCode").value = "AC";
+    document.getElementById("genMeterEventSignalStrength").value = "181";
+    document.getElementById("genMeterEventRepeater").value = "19";
+    document.getElementById("genMeterEventYear").value = "2026";
+    document.getElementById("genMeterEventMonth").value = "7";
+    document.getElementById("genMeterEventDay").value = "21";
+    document.getElementById("genMeterEventHour").value = "12";
+    document.getElementById("genMeterEventMinute").value = "0";
+    document.getElementById("generatedMeterEventHex").textContent = "";
 }
 
 // =============== RESET GENERATOR FUNCTIONS ===============
@@ -551,6 +773,7 @@ function getManufacturer(manufacturerId) {
         "1A1D": "Modbus ABB AquaMaster",
         "2B0E": "Modbus KHRONE IFC300",
         "7A7B": "Pulse Meter",
+        "11A5": "Diehl Meters",
     };
     return manufacturers[manufacturerId] || "Unknown";
 }
@@ -566,6 +789,7 @@ function getManufacturerHex(manufacturerText) {
         "Modbus ABB AquaMaster": "1A1D",
         "Modbus KHRONE IFC300": "2B0E",
         "Pulse Meter": "7A7B",
+        "Diehl Meters": "11A5",
     };
     return manufacturers[manufacturerText] || "4CAE";
 }
@@ -722,7 +946,7 @@ function generateInstallationHexString() {
         const hour = document.getElementById("genHour").value;
         const minute = document.getElementById("genMinute").value;
 
-        let hexString = "DC";
+        let hexString = "□DC";
         hexString += dec2hex(receiverNumber, 1);
         hexString += dec2hex(index, 1);
         hexString += type;
@@ -735,7 +959,7 @@ function generateInstallationHexString() {
         hexString += "0";
         hexString += dec2hex(signalStrength, 2);
         hexString += dec2hex(repeater, 2);
-        hexString += "40";
+        hexString += "□DC";
         hexString += dec2hex(year, 4);
         hexString += dec2hex(month, 2);
         hexString += dec2hex(day, 2);
@@ -923,7 +1147,7 @@ function generateAnalogHexString() {
         const hour = document.getElementById("genAnalogHour").value;
         const minute = document.getElementById("genAnalogMinute").value;
 
-        let hexString = "DC";
+        let hexString = "□DC";
         hexString += dec2hex(receiverNumber, 1);
         hexString += dec2hex(index, 1);
         hexString += type;
@@ -933,7 +1157,7 @@ function generateAnalogHexString() {
         hexString += "0"; // Channel
         hexString += dec2hex(signalStrength, 2);
         hexString += dec2hex(repeater, 2);
-        hexString += "40"; // ETX + Checksum
+        hexString += "40"; // ETX + Checksum
         hexString += dec2hex(year, 4);
         hexString += dec2hex(month, 2);
         hexString += dec2hex(day, 2);
@@ -1247,7 +1471,7 @@ function generateBoxHexString() {
         const hour = document.getElementById("genBoxHour").value;
         const minute = document.getElementById("genBoxMinute").value;
 
-        let hexString = "DC1";
+        let hexString = "□DC1";
         hexString += dec2hex(index, 1);
         hexString += "7"; //dummy type
         hexString += dec2hex(account, 5);
@@ -1269,7 +1493,7 @@ function generateBoxHexString() {
         hexString += "0";
         hexString += dec2hex(signalStrength, 2);
         hexString += dec2hex(repeater, 2);
-        hexString += "34"; // ETX + Checksum
+        hexString += "□34"; // ETX + Checksum
         hexString += dec2hex(year, 4);
         hexString += dec2hex(month, 2);
         hexString += dec2hex(day, 2);
@@ -1492,6 +1716,7 @@ function copyOnDemandToGenerator() {
 document.addEventListener("DOMContentLoaded", function () {
     // =============== INITIAL PARSING ===============
     parseMeterHexString(document.getElementById("meterHexInput").value);
+    parseMeterEventHexString(document.getElementById("meterEventHexInput").value);
     parseInstallationHexString(document.getElementById("hexInput").value);
     parseAnalogHexString(document.getElementById("analogHexInput").value);
     parseBoxHexString(document.getElementById("boxHexInput").value);
@@ -1500,6 +1725,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // =============== HEX INPUT EVENT LISTENERS ===============
     document.getElementById("meterHexInput").addEventListener("input", function (e) {
         parseMeterHexString(e.target.value);
+    });
+
+    document.getElementById("meterEventHexInput").addEventListener("input", function (e) {
+        parseMeterEventHexString(e.target.value);
     });
 
     document.getElementById("hexInput").addEventListener("input", function (e) {
